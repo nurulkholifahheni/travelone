@@ -1,0 +1,57 @@
+# docker-compose.yml
+
+# Use the latest version of Docker Compose file format.
+version: '3.8'
+
+# Define the services that make up our application.
+services:
+  # 1. PostgreSQL Database Service
+  db:
+    # Use the official PostgreSQL image from Docker Hub.
+    image: postgres:14-alpine
+    # Set environment variables for the database credentials.
+    # These should match the values used in your Go `utils.go` file.
+    environment:
+      POSTGRES_USER: ${DB_USER:-user}        # Default to 'user' if not set
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-password} # Default to 'password' if not set
+      POSTGRES_DB: ${DB_NAME:-travelone}     # Default to 'travelone' if not set
+    # Map the container's port to a port on the host machine.
+    # The default PostgreSQL port is 5432.
+    ports:
+      - "5432:5432"
+    # Store the database data in a named volume so it persists even if the container is removed.
+    volumes:
+      - postgres_data:/var/lib/postgresql/data/
+      # Mount the migration script to a specific location inside the container.
+      # This is a common way to give the database container access to the migration scripts.
+      - ./core/database/migrations:/docker-entrypoint-initdb.d
+    # Name the container for easy reference.
+    container_name: postgres-db
+    restart: always
+
+  # 2. Go API Service
+  go-auth-service:
+    build: ./services/auth-go
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./services/auth-go:/app
+    environment:
+      # Inject the database environment variables into this service.
+      # The host is the service name defined in docker-compose ('db').
+      DB_HOST: db
+      DB_PORT: 5432
+      DB_USER: ${DB_USER:-user}
+      DB_PASSWORD: ${DB_PASSWORD:-password}
+      DB_NAME: ${DB_NAME:-travelone}
+    container_name: golang-api-service
+    restart: always
+    # This ensures the Go service waits for the database to be up and running.
+    depends_on:
+      - db
+      
+  # 3. Python Auth Service (example)
+
+# Define the named volume for persistent data.
+volumes:
+  postgres_data:
