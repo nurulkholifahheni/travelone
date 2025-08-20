@@ -2,29 +2,24 @@
 version: '3.8'
 
 services:
-  # 1. Traefik API Gateway Service
-  traefik:
-    image: traefik:v2.10
-    container_name: traefik
-    command:
-      # Enable the Docker provider so Traefik can find and configure services automatically.
-      - --providers.docker=true
-      # Watch for container changes.
-      - --providers.docker.exposedbydefault=false
-      # Entrypoint for web traffic.
-      - --entrypoints.web.address=:80
+  # 1. Our custom Go API Gateway Service
+  go-api-gateway:
+    build: ./core/api-gateway # Build from the new gateway directory
+    container_name: go-api-gateway
     ports:
-      # The main entry point for all client requests.
-      - "80:80"
-    volumes:
-      # Access to the Docker socket to discover services.
-      - /var/run/docker.sock:/var/run/docker.sock
+      - "80:8080" # Map host port 80 to container port 8080
     restart: always
+    depends_on:
+      - go-auth-service # Ensure the auth service is running before the gateway starts
 
   # 2. Go API Service
   go-auth-service:
     build: ./services/auth-go
     container_name: golang-auth-service
+    # Note: We no longer expose this port to the outside world.
+    # It is only accessible from other containers on the internal network.
+    expose:
+      - "8080"
     restart: always
     environment:
       DB_HOST: db
@@ -32,13 +27,6 @@ services:
       DB_USER: ${DB_USER:-user}
       DB_PASSWORD: ${DB_PASSWORD:-password}
       DB_NAME: ${DB_NAME:-travelone}
-    # Use labels to tell Traefik how to route requests to this service.
-    labels:
-      - "traefik.enable=true"
-      # Route requests with the host example.com and path prefix /auth
-      - "traefik.http.routers.go-auth.rule=Host(`localhost`) && PathPrefix(`/auth`)"
-      # The port of the service inside its container.
-      - "traefik.http.services.go-auth.loadbalancer.server.port=8080"
     depends_on:
       - db
 
