@@ -44,13 +44,11 @@ services:
       DB_USER: ${DB_USER:-user}
       DB_PASSWORD: ${DB_PASSWORD:-password}
       DB_NAME: ${DB_NAME:-travelone}
-    container_name: golang-api-service
+    container_name: golang-auth-service
     restart: always
     # This ensures the Go service waits for the database to be up and running.
     depends_on:
       - db
-      
-  # 3. Python Auth Service (example)
 
 # Define the named volume for persistent data.
 volumes:
