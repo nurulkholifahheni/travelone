@@ -1,0 +1,5 @@
+package com.example.travelezia_mobile
+
+import io.flutter.embedding.android.FlutterActivity
+
+class MainActivity : FlutterActivity()
